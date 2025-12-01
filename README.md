@@ -88,7 +88,7 @@ O modelo escolhido foi o **Random Forest Classifier**, pela sua robustez, interp
 | ⚖️ **Imbalanced-learn (SMOTE)** | Correção do desbalanceamento |
 | 🌲 **RandomForestClassifier** | Classificador utilizado |
 
----
+
 
 
 
