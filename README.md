@@ -51,7 +51,11 @@ O modelo escolhido foi o **Random Forest Classifier**, pela sua robustez, interp
 - Verificação de correlação entre atributos
 
 ### 3️⃣ Pré-processamento
+<<<<<<< HEAD
 - Codificação de variáveis categóricas com **OrdinalEncoder**
+=======
+- Limpeza e organização dos dados
+>>>>>>> 8e24ff30eea613e59925a85e1f89eff977bfdf1e
 - Separação em treino e teste
 - Aplicação de **SMOTE** para corrigir o desbalanceamento
 
