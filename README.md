@@ -83,7 +83,7 @@ O modelo escolhido foi o **Random Forest Classifier**, pela sua robustez, interp
 
 | Tecnologia | Função |
 |-----------|--------|
-| 🐍 **Python** | Linguagem principal do projeto |
+| 🐍 **Python 3.12.0** | Linguagem principal do projeto |
 | 🧮 **Pandas / NumPy** | Manipulação e análise de dados |
 | 📊 **Matplotlib / Seaborn** | Visualizações e gráficos |
 | 🤖 **Scikit-learn** | Modelagem e métricas |
