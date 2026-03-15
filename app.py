@@ -87,7 +87,7 @@ def build_feature_row(data: CustomerInput) -> pd.DataFrame:
         "EstimatedSalary": data.EstimatedSalary,
         "Complain": data.Complain,
         "Satisfaction Score": data.SatisfactionScore,
-        "Points Earned": data.PointsEarned,
+        "Point Earned": data.PointsEarned,
         "Card Type": data.CardType,
     }])
 
