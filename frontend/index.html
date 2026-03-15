@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Churn Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <h1>Churn Prediction</h1>
+      <p class="tagline">Predict customer churn risk from profile data</p>
+      <button class="btn btn-secondary" id="metrics-btn">Model metrics</button>
+    </header>
+
+    <main class="main">
+      <section class="card form-card">
+        <h2>Customer data</h2>
+        <form id="churn-form" class="form">
+          <div class="form-grid">
+            <label for="CreditScore">Credit score</label>
+            <input type="number" id="CreditScore" name="CreditScore" min="300" max="850" placeholder="300–850" required />
+
+            <label for="Gender">Gender</label>
+            <select id="Gender" name="Gender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+
+            <label for="Age">Age</label>
+            <input type="number" id="Age" name="Age" min="0" max="100" required />
+
+            <label for="Tenure">Tenure (years)</label>
+            <input type="number" id="Tenure" name="Tenure" min="0" required />
+
+            <label for="Balance">Balance</label>
+            <input type="number" id="Balance" name="Balance" min="0" step="0.01" required />
+
+            <label for="NumOfProducts">Number of products</label>
+            <input type="number" id="NumOfProducts" name="NumOfProducts" min="1" max="4" required />
+
+            <label for="HasCrCard">Has credit card</label>
+            <select id="HasCrCard" name="HasCrCard">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+
+            <label for="IsActiveMember">Active member</label>
+            <select id="IsActiveMember" name="IsActiveMember">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+
+            <label for="EstimatedSalary">Estimated salary</label>
+            <input type="number" id="EstimatedSalary" name="EstimatedSalary" min="0" step="0.01" required />
+
+            <label for="Complain">Complained</label>
+            <select id="Complain" name="Complain">
+              <option value="0">No</option>
+              <option value="1">Yes</option>
+            </select>
+
+            <label for="SatisfactionScore">Satisfaction score (1–5)</label>
+            <input type="number" id="SatisfactionScore" name="Satisfaction Score" min="1" max="5" required />
+
+            <label for="PointsEarned">Points earned</label>
+            <input type="number" id="PointsEarned" name="Points Earned" min="0" required />
+
+            <label for="CardType">Card type</label>
+            <select id="CardType" name="Card Type">
+              <option value="SILVER">Silver</option>
+              <option value="GOLD">Gold</option>
+              <option value="PLATINUM">Platinum</option>
+              <option value="DIAMOND">Diamond</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" id="submit-btn">Predict churn</button>
+        </form>
+      </section>
+
+      <section class="card result-card" id="result-card" hidden>
+        <h2>Result</h2>
+        <div id="result-content"></div>
+      </section>
+
+      <div class="error-box" id="error-box" hidden></div>
+    </main>
+
+    <!-- Metrics modal -->
+    <div class="modal-overlay" id="modal-overlay" hidden>
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Model metrics</h2>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="modal-body">Loading…</div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <p>Churn Prediction API</p>
+    </footer>
+  </div>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

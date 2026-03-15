@@ -1,49 +1,70 @@
 from pathlib import Path
-import pandas as pd
+
 import joblib
+import mlflow
+import mlflow.sklearn
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
-from pipeline import build_classifier_pipeline
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "data" / "customer_dataset.csv"
 ARTIFACTS_DIR = BASE_DIR / "artifacts"
-
 ARTIFACTS_DIR.mkdir(exist_ok=True)
 
+MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
+MLFLOW_EXPERIMENT_NAME = "customer_churn_experiment"
 
-def main():
+MODELS = {
+    "logistic_regression": LogisticRegression(max_iter=10, random_state=0),
+    "random_forest": RandomForestClassifier(n_estimators=10, random_state=0),
+    "gradient_boosting": GradientBoostingClassifier(n_estimators=10, random_state=0),
+}
+
+
+def prepare_data():
     df = pd.read_csv(DATA_PATH)
+    df.drop(columns=["RowNumber", "CustomerId", "Surname", "Geography"], inplace=True, errors="ignore")
 
-    df.drop(
-        columns=["RowNumber", "CustomerId", "Surname", "Geography"],
-        inplace=True,
-        errors="ignore"
+    X, y = df.drop(columns=["Exited"]), df["Exited"]
+    cat_cols = X.select_dtypes(include="object").columns.tolist()
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0, stratify=y)
+    return X_train, X_test, y_train, y_test, cat_cols
+
+
+def build_pipeline(model, cat_cols):
+    preprocess = ColumnTransformer(
+        transformers=[("cat", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), cat_cols)],
+        remainder="passthrough",
     )
+    return Pipeline(steps=[("preprocess", preprocess), ("model", model)])
 
-    X = df.drop(columns=["Exited"])
-    y = df["Exited"]
 
-    categorical_cols = X.select_dtypes(include="object").columns.tolist()
+def train():
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+    mlflow.sklearn.autolog(log_models=False)
 
-    X_train, X_test, y_train, y_test = train_test_split(X,y,
-        test_size=0.3,
-        random_state=0,
-    )
-
-    pipeline = build_classifier_pipeline(categorical_cols)
-    pipeline.fit(X_train, y_train)
-
-    joblib.dump(pipeline, ARTIFACTS_DIR / "model.pkl")
+    X_train, X_test, y_train, y_test, cat_cols = prepare_data()
     joblib.dump((X_test, y_test), ARTIFACTS_DIR / "test.pkl")
-    THRESHOLD = 0.35
-    joblib.dump(THRESHOLD, ARTIFACTS_DIR / "threshold.pkl")
 
+    for run_name, model in MODELS.items():
+        with mlflow.start_run(run_name=run_name):
+            pipeline = build_pipeline(model, cat_cols)
+            pipeline.fit(X_train, y_train)
 
-
-
-    print("✅ Modelo treinado")
+            auc = roc_auc_score(y_test, pipeline.predict_proba(X_test)[:, 1])
+            mlflow.log_metric("test_roc_auc", auc)
+            mlflow.sklearn.log_model(pipeline, artifact_path="model")
+            print(f"✅ {run_name} — AUC: {auc:.4f}")
 
 
 if __name__ == "__main__":
-    main()
+    train()
