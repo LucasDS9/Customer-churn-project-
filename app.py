@@ -1,5 +1,4 @@
 import joblib
-import os
 from pathlib import Path
 from typing import Literal, Optional
 import json
@@ -12,6 +11,7 @@ from pydantic import BaseModel, Field
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "artifacts" / "model.pkl"
+METRICS_PATH = BASE_DIR / "artifacts" / "metrics.json"
 
 app = FastAPI(
     title="Churn Prediction API",
@@ -29,15 +29,13 @@ app.add_middleware(
 
 THRESHOLD = 0.35
 
-_model = None
+if not MODEL_PATH.exists():
+    raise RuntimeError(f"Model file not found at {MODEL_PATH}")
+
+_model = joblib.load(MODEL_PATH)
 
 
 def get_model():
-    global _model
-    if _model is None:
-        if not MODEL_PATH.exists():
-            raise HTTPException(status_code=503, detail=f"Model file not found at {MODEL_PATH}")
-        _model = joblib.load(MODEL_PATH)
     return _model
 
 
@@ -89,7 +87,7 @@ def build_feature_row(data: CustomerInput) -> pd.DataFrame:
         "EstimatedSalary": data.EstimatedSalary,
         "Complain": data.Complain,
         "Satisfaction Score": data.SatisfactionScore,
-        "Point Earned": data.PointsEarned,
+        "Points Earned": data.PointsEarned,
         "Card Type": data.CardType,
     }])
 
@@ -124,7 +122,6 @@ def predict(customer: CustomerInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
-METRICS_PATH = BASE_DIR / "artifacts" / "metrics.json"
 
 @app.get("/metrics", summary="Model metrics")
 def metrics():
@@ -132,6 +129,7 @@ def metrics():
         raise HTTPException(status_code=404, detail="metrics.json not found")
     with open(METRICS_PATH) as f:
         return json.load(f)
+
 
 _frontend_dir = BASE_DIR / "frontend"
 if _frontend_dir.is_dir():
