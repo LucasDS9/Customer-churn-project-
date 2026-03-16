@@ -3,10 +3,9 @@ from imblearn.over_sampling import SMOTE
 
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OrdinalEncoder
-from sklearn.ensemble import RandomForestClassifier
 
 
-def build_classifier_pipeline(categorical_cols):
+def build_classifier_pipeline(categorical_cols, model):  # model recebido como parâmetro
 
     preprocess = ColumnTransformer(
         transformers=[
@@ -26,13 +25,7 @@ def build_classifier_pipeline(categorical_cols):
         steps=[
             ("preprocess", preprocess),
             ("smote", SMOTE(random_state=0)),
-            (
-                "model",
-                RandomForestClassifier(
-                    n_estimators=10,
-                    random_state=0
-                ),
-            ),
+            ("model", model),  # model injetado aqui
         ]
     )
 

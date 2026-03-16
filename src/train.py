@@ -6,11 +6,10 @@ import mlflow.sklearn
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OrdinalEncoder
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
+
+from pipeline import build_classifier_pipeline 
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,14 +38,6 @@ def prepare_data():
     return X_train, X_test, y_train, y_test, cat_cols
 
 
-def build_pipeline(model, cat_cols):
-    preprocess = ColumnTransformer(
-        transformers=[("cat", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), cat_cols)],
-        remainder="passthrough",
-    )
-    return Pipeline(steps=[("preprocess", preprocess), ("model", model)])
-
-
 def train():
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
@@ -57,7 +48,7 @@ def train():
 
     for run_name, model in MODELS.items():
         with mlflow.start_run(run_name=run_name):
-            pipeline = build_pipeline(model, cat_cols)
+            pipeline = build_classifier_pipeline(cat_cols, model)  
             pipeline.fit(X_train, y_train)
 
             auc = roc_auc_score(y_test, pipeline.predict_proba(X_test)[:, 1])
