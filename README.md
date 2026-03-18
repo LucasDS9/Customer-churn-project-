@@ -4,7 +4,7 @@
 
 > Projeto completo de **Machine Learning** focado em prever quais clientes bancários possuem maior probabilidade de cancelar seus serviços (**churn**). Além da previsão, o projeto também busca **entender os fatores que influenciam o cancelamento**, oferecendo insights estratégicos para retenção de clientes.
 
-🌐 **[Acesse o portfólio](https://LucasDS9.github.io)** · 🚀 **[Testar o modelo](https://customer-churn-project-d7xs.onrender.com)** · 📓 **[Ver notebook](https://github.com/LucasDS9/Customer-churn-project-/blob/main/notebook/Customer_churn.ipynb)**
+🌐 **[Acesse o portfólio](https://LucasDS9.github.io)** · 🚀 **[Testar o modelo](https://customer-churn-project-d7xs.onrender.com/app;)** · 📓 **[Ver notebook](https://github.com/LucasDS9/Customer-churn-project-/blob/main/notebook/Customer_churn.ipynb)**
 
 ---
 
