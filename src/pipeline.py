@@ -5,7 +5,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OrdinalEncoder
 
 
-def build_classifier_pipeline(categorical_cols, model):  # model recebido como parâmetro
+def build_classifier_pipeline(categorical_cols, model):  
 
     preprocess = ColumnTransformer(
         transformers=[
@@ -25,7 +25,7 @@ def build_classifier_pipeline(categorical_cols, model):  # model recebido como p
         steps=[
             ("preprocess", preprocess),
             ("smote", SMOTE(random_state=0)),
-            ("model", model),  # model injetado aqui
+            ("model", model),  
         ]
     )
 
