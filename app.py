@@ -14,7 +14,10 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from groq import Groq
 
-load_dotenv()
+if os.environ.get("RENDER"):
+    load_dotenv("/etc/secrets/.env")
+else:
+    load_dotenv()
 
 BASE_DIR     = Path(__file__).resolve().parent
 MODEL_PATH   = BASE_DIR / "artifacts" / "model.pkl"
@@ -48,10 +51,7 @@ def get_model():
 
 
 def _get_groq_client():
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY não encontrada.")
-    return Groq(api_key=api_key)
+    return Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 
 class CustomerInput(BaseModel):
