@@ -6,3 +6,4 @@ numpy==2.4.3
 scikit-learn==1.8.0
 imbalanced-learn
 mlflow
+python-dotenv
