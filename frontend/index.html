@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Churn Prediction</title>
+  <title>Previsão de Churn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
@@ -12,92 +12,126 @@
 <body>
   <div class="page">
     <header class="header">
-      <h1>Churn Prediction</h1>
-      <p class="tagline">Predict customer churn risk from profile data</p>
-      <button class="btn btn-secondary" id="metrics-btn">Model metrics</button>
+      <h1>Previsão de Churn</h1>
+      <p class="tagline">Analise o risco de um cliente abandonar o banco com base no seu perfil</p>
+      <button class="btn btn-secondary" id="metrics-btn">Métricas do modelo</button>
     </header>
 
     <main class="main">
-      <section class="card form-card">
-        <h2>Customer data</h2>
-        <form id="churn-form" class="form">
-          <div class="form-grid">
-            <label for="CreditScore">Credit score</label>
-            <input type="number" id="CreditScore" name="CreditScore" min="300" max="850" placeholder="300–850" required />
 
-            <label for="Gender">Gender</label>
-            <select id="Gender" name="Gender">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-
-            <label for="Age">Age</label>
-            <input type="number" id="Age" name="Age" min="0" max="100" required />
-
-            <label for="Tenure">Tenure (years)</label>
-            <input type="number" id="Tenure" name="Tenure" min="0" required />
-
-            <label for="Balance">Balance</label>
-            <input type="number" id="Balance" name="Balance" min="0" step="0.01" required />
-
-            <label for="NumOfProducts">Number of products</label>
-            <input type="number" id="NumOfProducts" name="NumOfProducts" min="1" max="4" required />
-
-            <label for="HasCrCard">Has credit card</label>
-            <select id="HasCrCard" name="HasCrCard">
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </select>
-
-            <label for="IsActiveMember">Active member</label>
-            <select id="IsActiveMember" name="IsActiveMember">
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </select>
-
-            <label for="EstimatedSalary">Estimated salary</label>
-            <input type="number" id="EstimatedSalary" name="EstimatedSalary" min="0" step="0.01" required />
-
-            <label for="Complain">Complained</label>
-            <select id="Complain" name="Complain">
-              <option value="0">No</option>
-              <option value="1">Yes</option>
-            </select>
-
-            <label for="SatisfactionScore">Satisfaction score (1–5)</label>
-            <input type="number" id="SatisfactionScore" name="Satisfaction Score" min="1" max="5" required />
-
-            <label for="PointsEarned">Points earned</label>
-            <input type="number" id="PointsEarned" name="Points Earned" min="0" required />
-
-            <label for="CardType">Card type</label>
-            <select id="CardType" name="Card Type">
-              <option value="SILVER">Silver</option>
-              <option value="GOLD">Gold</option>
-              <option value="PLATINUM">Platinum</option>
-              <option value="DIAMOND">Diamond</option>
-            </select>
+      <section class="card">
+        <h2>Configuração do modelo</h2>
+        <div class="threshold-wrap">
+          <div class="threshold-header">
+            <label class="threshold-label" for="threshold-slider">
+              Threshold de decisão
+              <span class="tooltip-anchor" data-tip="Define a partir de qual probabilidade o cliente é classificado como churn. Valores baixos = mais sensível (captura mais churns, mas gera mais alertas falsos). Valores altos = mais conservador.">?</span>
+            </label>
+            <span class="threshold-val" id="threshold-display">0.35</span>
           </div>
-          <button type="submit" class="btn btn-primary" id="submit-btn">Predict churn</button>
+          <input type="range" id="threshold-slider" min="10" max="90" value="35" step="1" />
+          <p class="threshold-desc" id="threshold-desc">Padrão recomendado — equilibra detecção de churn e falsos positivos neste dataset desbalanceado.</p>
+          <div class="threshold-badges">
+            <span class="tbadge" id="tb-low">0.20 agressivo</span>
+            <span class="tbadge active" id="tb-mid">0.35 recomendado</span>
+            <span class="tbadge" id="tb-high">0.60 conservador</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card form-card">
+        <h2>Dados do cliente</h2>
+        <form id="churn-form" class="form">
+
+          <div class="form-group-label">Dados pessoais</div>
+          <div class="form-grid">
+            <div class="field-wrap">
+              <label for="CreditScore">
+                Credit score
+                <span class="tooltip-anchor" data-tip="Pontuação de crédito do cliente. Varia de 300 (muito baixo) a 850 (excelente).">?</span>
+              </label>
+              <input type="number" id="CreditScore" name="CreditScore" min="300" max="850" placeholder="300–850" required />
+            </div>
+
+            <div class="field-wrap">
+              <label for="Gender">Gênero</label>
+              <select id="Gender" name="Gender">
+                <option value="Male">Masculino</option>
+                <option value="Female">Feminino</option>
+              </select>
+            </div>
+
+            <div class="field-wrap">
+              <label for="Age">Idade</label>
+              <input type="number" id="Age" name="Age" min="18" max="100" placeholder="18–100" required />
+            </div>
+
+            <div class="field-wrap">
+              <label for="Tenure">
+                Tempo de banco (anos)
+                <span class="tooltip-anchor" data-tip="Quantidade de anos que o cliente está no banco. Varia de 0 a 10 anos conforme os dados de treinamento.">?</span>
+              </label>
+              <input type="number" id="Tenure" name="Tenure" min="0" max="10" placeholder="0–10" required />
+            </div>
+          </div>
+
+          <div class="form-group-label">Dados financeiros</div>
+          <div class="form-grid">
+            <div class="field-wrap">
+              <label for="EstimatedSalary">
+                Salário estimado (R$/mês)
+                <span class="tooltip-anchor" data-tip="Salário mensal estimado em reais. Os dados foram originalmente coletados em USD anual e convertidos para BRL mensal (÷5 e ÷12).">?</span>
+              </label>
+              <input type="number" id="EstimatedSalary" name="EstimatedSalary" min="0" step="0.01" placeholder="ex: 3500.00" required />
+            </div>
+          </div>
+
+          <div class="form-group-label">Engajamento e satisfação</div>
+          <div class="form-grid">
+            <div class="field-wrap">
+              <label for="IsActiveMember">Membro ativo?</label>
+              <select id="IsActiveMember" name="IsActiveMember">
+                <option value="1">Sim</option>
+                <option value="0">Não</option>
+              </select>
+            </div>
+
+            <div class="field-wrap">
+              <label for="Complain">Reclamou recentemente?</label>
+              <select id="Complain" name="Complain">
+                <option value="0">Não</option>
+                <option value="1">Sim</option>
+              </select>
+            </div>
+
+            <div class="field-wrap">
+              <label for="SatisfactionScore">
+                Score de satisfação
+                <span class="tooltip-anchor" data-tip="Nível de satisfação do cliente com o banco. 1 = muito insatisfeito, 5 = muito satisfeito.">?</span>
+              </label>
+              <input type="number" id="SatisfactionScore" name="Satisfaction Score" min="1" max="5" placeholder="1–5" required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submit-btn">Analisar perfil</button>
         </form>
       </section>
 
       <section class="card result-card" id="result-card" hidden>
-        <h2>Result</h2>
+        <h2>Resultado</h2>
         <div id="result-content"></div>
       </section>
 
       <div class="error-box" id="error-box" hidden></div>
     </main>
 
-    <!-- Metrics modal -->
     <div class="modal-overlay" id="modal-overlay" hidden>
       <div class="modal">
         <div class="modal-header">
-          <h2>Model metrics</h2>
+          <h2>Métricas do modelo</h2>
           <button class="modal-close" id="modal-close">✕</button>
         </div>
-        <div class="modal-body" id="modal-body">Loading…</div>
+        <div class="modal-body" id="modal-body">Carregando…</div>
       </div>
     </div>
 
@@ -105,6 +139,9 @@
       <p>Churn Prediction API</p>
     </footer>
   </div>
+
+  <div class="tooltip-box" id="tooltip-box"></div>
+
   <script src="js/config.js"></script>
   <script src="js/app.js"></script>
 </body>
