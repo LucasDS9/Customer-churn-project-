@@ -8,3 +8,5 @@ imbalanced-learn
 mlflow
 python-dotenv
 groq
+xgboost
+shap
