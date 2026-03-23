@@ -37,8 +37,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-THRESHOLD  = 0.35
-GROQ_MODEL = "llama-3.3-70b-versatile"
+THRESHOLD    = 0.35
+GROQ_MODEL   = "llama-3.3-70b-versatile"
+
 
 if not MODEL_PATH.exists():
     raise RuntimeError(f"Model file not found at {MODEL_PATH}")
@@ -84,16 +85,46 @@ def classify_risk(prob: float):
     return "High Risk"
 
 
-def build_feature_row(data: CustomerInput):
+def _compute_engineered_features(
+    satisfaction_score: int,
+    complain: int,
+    is_active_member: int,
+    tenure: int,
+) -> dict:
+    risco_composto = (
+        (int(satisfaction_score <= 2)) * 3 +
+        complain * 2 +
+        (1 - is_active_member) * 1
+    )
+
+    risco_cliente = (
+        (1 - is_active_member) * 0.40 +
+        complain * 0.35 +
+        (1 - tenure / 10) * 0.25
+    )
+
+    return {"risco_composto": risco_composto, "risco_cliente": round(risco_cliente, 4)}
+
+
+def build_feature_row(data: CustomerInput) -> pd.DataFrame:
+    engineered = _compute_engineered_features(
+        satisfaction_score=data.SatisfactionScore,
+        complain=data.Complain,
+        is_active_member=data.IsActiveMember,
+        tenure=data.Tenure,
+    )
+
     return pd.DataFrame([{
-        "CreditScore": data.CreditScore,
-        "Gender": data.Gender,
-        "Age": data.Age,
-        "Tenure": data.Tenure,
-        "IsActiveMember": data.IsActiveMember,
-        "EstimatedSalary": data.EstimatedSalary,
-        "Complain": data.Complain,
+        "CreditScore":      data.CreditScore,
+        "Gender":           data.Gender,
+        "Age":              data.Age,
+        "Tenure":           data.Tenure,
+        "IsActiveMember":   data.IsActiveMember,
+        "EstimatedSalary":  data.EstimatedSalary,
+        "Complain":         data.Complain,
         "Satisfaction Score": data.SatisfactionScore,
+        "risco_composto":   engineered["risco_composto"],
+        "risco_cliente":    engineered["risco_cliente"],
     }])
 
 
@@ -109,6 +140,23 @@ def _run_prediction(customer, threshold):
 def _run_explanation(customer, prob, pred, risk, threshold):
     result_label = "tende a sair" if pred == 1 else "tende a ficar"
 
+    engineered = _compute_engineered_features(
+        satisfaction_score=customer.SatisfactionScore,
+        complain=customer.Complain,
+        is_active_member=customer.IsActiveMember,
+        tenure=customer.Tenure,
+    )
+
+    risco_composto = engineered["risco_composto"]
+    risco_cliente  = engineered["risco_cliente"]
+
+    # risco_composto: 0-6 scale (0=lowest, 6=highest)
+    nivel_composto = (
+        "baixo (0–2)"   if risco_composto <= 2 else
+        "médio (3–4)"   if risco_composto <= 4 else
+        "alto (5–6)"
+    )
+
     prompt = f"""
 Você é um especialista em retenção de clientes.
 
@@ -117,15 +165,22 @@ Resultado do modelo:
 - Risco: {risk}
 - Cliente {result_label}
 
-Dados:
+Dados do cliente:
 - Idade: {customer.Age}
-- Tempo de banco: {customer.Tenure}
-- Ativo: {"Sim" if customer.IsActiveMember else "Não"}
-- Salário: {customer.EstimatedSalary}
-- Reclamação: {"Sim" if customer.Complain else "Não"}
+- Tempo de banco: {customer.Tenure} anos
+- Membro ativo: {"Sim" if customer.IsActiveMember else "Não"}
+- Salário estimado: {customer.EstimatedSalary:,.2f}
+- Reclamação registrada: {"Sim" if customer.Complain else "Não"}
 - Satisfação: {customer.SatisfactionScore}/5
 
-Explique de forma simples e sugira ações se necessário.
+Indicadores de risco calculados pelo modelo:
+- Risco composto (escala 0–6, quanto maior pior): {risco_composto} → nível {nivel_composto}
+  * Penaliza satisfação ≤ 2 (peso 3), reclamação (peso 2) e inatividade (peso 1)
+- Risco cliente (escala 0–1, quanto maior pior): {risco_cliente:.2f}
+  * Combina inatividade (40%), reclamação (35%) e pouco tempo de banco (25%)
+
+Com base em todos esses dados, explique de forma clara o perfil de risco deste cliente
+e sugira ações de retenção se necessário.
 """
 
     response = _get_groq_client().chat.completions.create(
