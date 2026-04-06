@@ -9,7 +9,8 @@ import numpy as np
 import shap
 
 from xgboost import XGBClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from lightgbm import LGBMClassifier
 from sklearn.metrics import (
     roc_auc_score,
     f1_score,
@@ -34,26 +35,38 @@ MLFLOW_EXPERIMENT_NAME = "customer_churn_experiment"
 THRESHOLD = 0.35
 
 MODELS = {
-    "xgboost": XGBClassifier(
-        n_estimators=500,
-        learning_rate=0.005,
-        max_depth=4,
-        colsample_bytree=0.5,
-        random_state=0,
-        n_jobs=-1,
+    "xgboost": XGBClassifier( n_estimators=2000, 
+        learning_rate=0.003, 
+        max_depth=5, 
+        min_child_weight=5, 
+        gamma=3, subsample=0.75, 
+        colsample_bytree=0.7, 
+        reg_alpha=2, 
+        reg_lambda=5, 
+        scale_pos_weight=3, 
+        random_state=0, n_jobs=-1 
     ),
-    "random_forest": RandomForestClassifier(
-        n_estimators=400,
-        max_depth=6,
-        max_features=0.5,
-        random_state=0,
-        n_jobs=-1,
+    "LightGBM": LGBMClassifier( n_estimators=3000, 
+        learning_rate=0.003, 
+        num_leaves=64, 
+        max_depth=-1, 
+        min_child_samples=30, 
+        subsample=0.7, 
+        colsample_bytree=0.7, 
+        reg_alpha=1, 
+        reg_lambda=3, 
+        scale_pos_weight=3, 
+        random_state=0, 
+        n_jobs=-1 
     ),
     "gradient_boosting": GradientBoostingClassifier(
-        n_estimators=500,
+        n_estimators=2500,
         learning_rate=0.005,
         max_depth=4,
         subsample=0.8,
+        min_samples_split=30,
+        min_samples_leaf=15,
+        max_features=0.7,
         random_state=0,
     ),
 }
