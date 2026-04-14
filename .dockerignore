@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+
+# MLflow 
+mlruns/
+mlartifacts/
+*.db
+
+# Treino 
+src/
+notebook/
+data/
+
+# Git
+.git
+.gitignore
+
+# Env
+.env
