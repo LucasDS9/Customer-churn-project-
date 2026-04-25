@@ -16,7 +16,7 @@ const C = {
 function Tooltip({ text }) {
   const [show, setShow] = useState(false);
   return (
-    <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
+    <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10 }}>
       <div
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
@@ -84,41 +84,42 @@ function AnimatedBar({ width, color, delay = 0 }) {
 }
 
 // ─── DONUT CHART ──────────────────────────────────────────────────
-function DonutChart({ pct, color1, color2, label1, label2, centerLabel, centerSub, size = 120, stroke = 20 }) {
+function DonutChart({ segments, centerLabel, centerSub, size = 120, stroke = 20 }) {
   const r = size / 2 - stroke / 2;
   const circ = 2 * Math.PI * r;
   const [animated, setAnimated] = useState(false);
   useEffect(() => { setTimeout(() => setAnimated(true), 200); }, []);
-  const slice2 = animated ? circ * pct / 100 : 0;
+
+  let offset = 0;
+  const slices = segments.map((seg) => {
+    const len = animated ? circ * seg.pct / 100 : 0;
+    const slice = { ...seg, dasharray: `${len} ${circ}`, dashoffset: -offset * circ / 100 };
+    offset += seg.pct;
+    return slice;
+  });
 
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20 }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle
-          cx={size / 2} cy={size / 2} r={r}
-          fill="none" stroke={color1} strokeWidth={stroke}
-          strokeDasharray={circ}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-        <circle
-          cx={size / 2} cy={size / 2} r={r}
-          fill="none" stroke={color2} strokeWidth={stroke}
-          strokeDasharray={`${slice2} ${circ}`}
-          strokeDashoffset={0}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: "stroke-dasharray 1.2s cubic-bezier(0.34,1.56,0.64,1)" }}
-        />
-        <text x={size / 2} y={size / 2 - 6} textAnchor="middle" fill={C.cream} fontSize={14} fontWeight={500}>{centerLabel}</text>
-        <text x={size / 2} y={size / 2 + 8} textAnchor="middle" fill={C.cream} fontSize={8} opacity={0.5}>{centerSub}</text>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1a0030" strokeWidth={stroke} />
+        {slices.map((s, i) => (
+          <circle key={i}
+            cx={size/2} cy={size/2} r={r}
+            fill="none" stroke={s.color} strokeWidth={stroke}
+            strokeDasharray={s.dasharray}
+            strokeDashoffset={s.dashoffset}
+            transform={`rotate(-90 ${size/2} ${size/2})`}
+            style={{ transition: "stroke-dasharray 1.2s cubic-bezier(0.34,1.56,0.64,1)" }}
+          />
+        ))}
+        <text x={size/2} y={size/2 - 6} textAnchor="middle" fill={C.cream} fontSize={14} fontWeight={500}>{centerLabel}</text>
+        <text x={size/2} y={size/2 + 8} textAnchor="middle" fill={C.cream} fontSize={8} opacity={0.5}>{centerSub}</text>
       </svg>
       <div>
-        {[[color1, label1], [color2, label2]].map(([c, l]) => (
-          <div key={l} style={{ display: "flex", alignItems: "center", fontSize: 12, color: C.cream, opacity: 0.85, marginBottom: 6 }}>
-            <span style={{
-              width: 10, height: 10, borderRadius: 2, background: c,
-              display: "inline-block", marginRight: 7, flexShrink: 0,
-            }} />
-            {l}
+        {segments.map((s) => (
+          <div key={s.label} style={{ display: "flex", alignItems: "center", fontSize: 12, color: C.cream, opacity: 0.85, marginBottom: 6 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: s.color, display: "inline-block", marginRight: 7, flexShrink: 0 }} />
+            {s.label}
           </div>
         ))}
       </div>
@@ -126,13 +127,92 @@ function DonutChart({ pct, color1, color2, label1, label2, centerLabel, centerSu
   );
 }
 
+// ─── HEATMAP ──────────────────────────────────────────────────────
+const heatmapData = [
+  { sat: "Baixa", cols: [
+    { x: "0 | 0", val: 0.10 },
+    { x: "0 | 1", val: 0.05 },
+    { x: "1 | 0", val: 0.44 },
+    { x: "1 | 1", val: 0.32 },
+  ]},
+  { sat: "Média", cols: [
+    { x: "0 | 0", val: 0.00 },
+    { x: "0 | 1", val: 0.00 },
+    { x: "1 | 0", val: 0.00 },
+    { x: "1 | 1", val: 0.07 },
+  ]},
+  { sat: "Alta", cols: [
+    { x: "0 | 0", val: 0.00 },
+    { x: "0 | 1", val: 0.00 },
+    { x: "1 | 0", val: 0.00 },
+    { x: "1 | 1", val: 0.03 },
+  ]},
+];
+
+function getHeatColor(val) {
+  if (val === 0) return "#0d001a";
+  if (val < 0.05) return "#1a0050";
+  if (val < 0.1) return "#3b0f70";
+  if (val < 0.2) return "#6b1040";
+  if (val < 0.35) return "#e04d7a";
+  return "#fcfdbf";
+}
+
+function HeatmapChart() {
+  const cols = ["0 | 0", "0 | 1", "1 | 0", "1 | 1"];
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: C.cream, fontWeight: 500, marginBottom: 14, opacity: 0.85 }}>
+        Churn por Satisfação, Reclamação e Atividade
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "80px repeat(4, 1fr)", gap: 4 }}>
+        <div />
+        {cols.map(c => (
+          <div key={c} style={{ fontSize: 10, color: C.cream, opacity: 0.45, textAlign: "center", paddingBottom: 4 }}>{c}</div>
+        ))}
+        {heatmapData.map((row) => (
+          <>
+            <div key={row.sat + "_label"} style={{ fontSize: 11, color: C.cream, opacity: 0.6, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 8 }}>{row.sat}</div>
+            {row.cols.map((cell) => (
+              <div key={row.sat + cell.x} style={{
+                background: getHeatColor(cell.val), borderRadius: 6, padding: "18px 4px",
+                textAlign: "center", fontSize: 12, fontWeight: 500,
+                color: cell.val > 0.3 ? C.black : C.cream,
+                transition: "background 0.3s",
+              }}>
+                {cell.val.toFixed(2)}
+              </div>
+            ))}
+          </>
+        ))}
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 10, color: C.cream, opacity: 0.35, marginBottom: 4 }}>Eixo X: Complain | IsActiveMember (0=Não/Inativo, 1=Sim/Ativo)</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 10, color: C.cream, opacity: 0.35 }}>0.00</span>
+          <div style={{ flex: 1, height: 6, borderRadius: 3, background: "linear-gradient(90deg,#0d001a,#3b0f70,#e04d7a,#fcfdbf)" }} />
+          <span style={{ fontSize: 10, color: C.cream, opacity: 0.35 }}>0.44</span>
+        </div>
+        <div style={{ fontSize: 10, color: C.cream, opacity: 0.25, marginTop: 2 }}>Taxa de Churn</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TENURE DONUT (3 segments) ────────────────────────────────────
+const tenureSegments = [
+  { pct: 20.2, color: "#fcfdbf", label: "0-3 anos — 20,2%" },
+  { pct: 48.7, color: C.purple, label: "4-7 anos — 48,7%" },
+  { pct: 31.1, color: "#1a0a2e", label: "8+ anos — 31,1%" },
+];
+
 // ─── CORRELATION BAR ──────────────────────────────────────────────
 const corrData = [
-  { label: "risco_composto",    value:  0.590, positive: true },
-  { label: "Complain",          value:  0.335, positive: true },
-  { label: "risco_cliente",     value:  0.289, positive: true },
-  { label: "Age",               value:  0.127, positive: true },
-  { label: "Satisfaction Score",value: -0.511, positive: false },
+  { label: "risco_composto",     value:  0.590, positive: true },
+  { label: "Complain",           value:  0.335, positive: true },
+  { label: "risco_cliente",      value:  0.289, positive: true },
+  { label: "Age",                value:  0.127, positive: true },
+  { label: "Satisfaction Score", value: -0.511, positive: false },
 ];
 const maxCorr = 0.59;
 
@@ -156,78 +236,6 @@ function CorrelationBar({ item, delay }) {
         {item.positive ? "+" : ""}{item.value.toFixed(3)}
       </div>
     </div>
-  );
-}
-
-// ─── CURVE CHART (SVG) ────────────────────────────────────────────
-const rocPoints = [[0,1],[0.02,0.97],[0.04,0.985],[0.08,0.992],[0.15,0.997],[0.3,0.998],[0.6,0.999],[1,1]];
-const prPoints  = [[0,1],[0.1,1],[0.25,0.99],[0.5,0.98],[0.6,0.95],[0.7,0.88],[0.75,0.76],[0.8,0.7],[0.9,0.6],[0.95,0.55],[1.0,0.07]];
-
-function RocChart({ points, color, diag = false }) {
-  const W = 240, H = 160, P = { t: 10, r: 10, b: 20, l: 28 };
-  const iW = W - P.l - P.r, iH = H - P.t - P.b;
-  const toX = (x) => P.l + x * iW;
-  const toY = (y) => P.t + (1 - y) * iH;
-  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${toX(p[0]).toFixed(1)},${toY(p[1]).toFixed(1)}`).join(" ");
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", overflow: "visible" }}>
-      <line x1={P.l} y1={P.t} x2={P.l} y2={P.t + iH} stroke={C.border} strokeWidth={0.5} />
-      <line x1={P.l} y1={P.t + iH} x2={P.l + iW} y2={P.t + iH} stroke={C.border} strokeWidth={0.5} />
-      {[0.25, 0.5, 0.75].map(v => (
-        <line key={v} x1={P.l} y1={toY(v)} x2={P.l + iW} y2={toY(v)} stroke={C.border} strokeWidth={0.3} opacity={0.4} />
-      ))}
-      {diag && <line x1={toX(0)} y1={toY(0)} x2={toX(1)} y2={toY(1)} stroke={C.cream} strokeWidth={0.8} strokeDasharray="4,3" opacity={0.25} />}
-      <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={`${d} L${toX(1)},${toY(0)} L${toX(0)},${toY(0)} Z`} fill={color} opacity={0.07} />
-      {[0, 0.5, 1].map(v => (
-        <text key={v} x={toX(v)} y={P.t + iH + 12} textAnchor="middle" fill={C.cream} fontSize={8} opacity={0.35}>{v}</text>
-      ))}
-      {[0, 0.5, 1].map(v => (
-        <text key={v} x={P.l - 4} y={toY(v) + 3} textAnchor="end" fill={C.cream} fontSize={8} opacity={0.35}>{v}</text>
-      ))}
-    </svg>
-  );
-}
-
-// PR Chart — Precision label inside SVG, mesmo tamanho que Recall
-function PrChart({ points, color }) {
-  const W = 240, H = 160, P = { t: 10, r: 10, b: 24, l: 42 };
-  const iW = W - P.l - P.r, iH = H - P.t - P.b;
-  const toX = (x) => P.l + x * iW;
-  const toY = (y) => P.t + (1 - y) * iH;
-  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${toX(p[0]).toFixed(1)},${toY(p[1]).toFixed(1)}`).join(" ");
-  const cx = P.l - 26;
-  const cy = P.t + iH / 2;
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", overflow: "visible" }}>
-      {/* Eixo Y label: Precision — mesmo fontSize que Recall */}
-      <text
-        x={cx} y={cy}
-        textAnchor="middle"
-        fill={C.cream}
-        fontSize={10}
-        opacity={0.3}
-        transform={`rotate(-90, ${cx}, ${cy})`}
-      >Precision</text>
-
-      <line x1={P.l} y1={P.t} x2={P.l} y2={P.t + iH} stroke={C.border} strokeWidth={0.5} />
-      <line x1={P.l} y1={P.t + iH} x2={P.l + iW} y2={P.t + iH} stroke={C.border} strokeWidth={0.5} />
-      {[0.25, 0.5, 0.75].map(v => (
-        <line key={v} x1={P.l} y1={toY(v)} x2={P.l + iW} y2={toY(v)} stroke={C.border} strokeWidth={0.3} opacity={0.4} />
-      ))}
-      <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <path d={`${d} L${toX(1)},${toY(0)} L${toX(0)},${toY(0)} Z`} fill={color} opacity={0.07} />
-      {/* Eixo X: números */}
-      {[0, 0.5, 1].map(v => (
-        <text key={v} x={toX(v)} y={P.t + iH + 12} textAnchor="middle" fill={C.cream} fontSize={8} opacity={0.35}>{v}</text>
-      ))}
-      {/* Eixo X label: Recall — mesmo fontSize que Precision */}
-      <text x={P.l + iW / 2} y={P.t + iH + 22} textAnchor="middle" fill={C.cream} fontSize={10} opacity={0.3}>Recall</text>
-      {/* Eixo Y: números */}
-      {[0, 0.5, 1].map(v => (
-        <text key={v} x={P.l - 4} y={toY(v) + 3} textAnchor="end" fill={C.cream} fontSize={8} opacity={0.35}>{v}</text>
-      ))}
-    </svg>
   );
 }
 
@@ -262,7 +270,7 @@ function ShapBar({ s, delay }) {
   );
 }
 
-// ─── SECTION DIVIDER — sem listra roxa ───────────────────────────
+// ─── SECTION DIVIDER ─────────────────────────────────────────────
 function SectionDivider({ num, label, refProp }) {
   return (
     <div ref={refProp} style={{ display: "flex", alignItems: "center", gap: 16, padding: "28px 28px 0" }}>
@@ -276,23 +284,67 @@ function SectionDivider({ num, label, refProp }) {
   );
 }
 
+// ─── INTRO BANNER ─────────────────────────────────────────────────
+function IntroBanner() {
+  return (
+    <div style={{
+      margin: "0 28px 8px",
+      padding: "22px 28px",
+      background: "linear-gradient(135deg, #0d001a 0%, #130026 60%, #1a0030 100%)",
+      borderRadius: 14,
+      border: `0.5px solid ${C.border}`,
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", top: -30, right: -30,
+        width: 120, height: 120, borderRadius: "50%",
+        background: `radial-gradient(circle, ${C.deepPink}22 0%, transparent 70%)`,
+        pointerEvents: "none",
+      }} />
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+          background: `radial-gradient(circle, ${C.pink} 0%, ${C.deepPink} 100%)`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 16, marginTop: 2,
+        }}>⚠</div>
+        <div>
+          <div style={{ fontSize: 13, color: C.pink, fontWeight: 600, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>
+            Sobre este dashboard
+          </div>
+          <div style={{ fontSize: 13, color: C.cream, opacity: 0.75, lineHeight: 1.8, maxWidth: 860 }}>
+            Este painel foi desenvolvido para <span style={{ color: C.cream, opacity: 1, fontWeight: 500 }}>identificar padrões comportamentais e perfis de clientes com maior propensão ao cancelamento (churn)</span>, fornecendo ao time de retenção um mapa de risco fundamentado em dados reais. O modelo XGBoost — calibrado com alta sensibilidade — sinaliza clientes em situação de alerta <span style={{ color: C.pink, fontWeight: 500 }}>antes</span> que a saída ocorra, abrindo uma janela estratégica para ações preventivas como contato proativo, ofertas personalizadas e programas de fidelização.
+          </div>
+          <div style={{ fontSize: 12, color: C.cream, opacity: 0.45, marginTop: 10, lineHeight: 1.6, fontStyle: "italic" }}>
+            Importante: as sinalizações geradas não representam certezas absolutas, mas probabilidades estatísticas. A finalidade é orientar decisões de retenção com inteligência e antecedência — não substituir o julgamento humano. Cada cliente sinalizado merece atenção individualizada.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ────────────────────────────────────────────────────
 export default function App() {
   const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 };
   const [activeTab, setActiveTab] = useState(0);
   const section2Ref = useRef(null);
+  const section3Ref = useRef(null);
 
   useEffect(() => {
-  document.body.style.margin = "0";
-  document.body.style.padding = "0";
-  document.body.style.background = C.bg;
-  document.body.style.overflowX = "hidden";
-}, []);
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
+    document.body.style.background = C.bg;
+    document.body.style.overflowX = "hidden";
+  }, []);
 
   const handleTabClick = (idx) => {
     setActiveTab(idx);
     if (idx === 1 && section2Ref.current) {
       section2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (idx === 2 && section3Ref.current) {
+      section3Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
     } else if (idx === 0) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -328,9 +380,9 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── NAV TABS — centralizados ── */}
+      {/* ── NAV TABS ── */}
       <div style={{ display: "flex", justifyContent: "center", padding: "0 36px", background: C.bg }}>
-        {["Análise Exploratória", "Modelo XGBoost"].map((t, i) => (
+        {["Análise Bivariada", "Análise Multivariada", "Modelo XGBoost"].map((t, i) => (
           <div
             key={t}
             onClick={() => handleTabClick(i)}
@@ -345,10 +397,15 @@ export default function App() {
         ))}
       </div>
 
+      {/* ── INTRO BANNER ── */}
+      <div style={{ padding: "20px 0 4px" }}>
+        <IntroBanner />
+      </div>
+
       {/* ══════════════════════════════════════
-          SECTION 1 — EDA
+          SECTION 1 — ANÁLISE BIVARIADA
       ══════════════════════════════════════ */}
-      <SectionDivider num="1" label="Análise Exploratória de Dados" />
+      <SectionDivider num="1" label="Análise Bivariada" />
 
       <div style={{ padding: "20px 28px" }}>
 
@@ -365,7 +422,14 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <DonutChart pct={7} color1={C.cream} color2={C.purple} label1="Não churn — 93%" label2="Churn — 7%" centerLabel="93%" centerSub="não churn" />
+            <DonutChart
+              segments={[
+                { pct: 93, color: C.cream, label: "Não churn — 93%" },
+                { pct: 7,  color: C.purple, label: "Churn — 7%" },
+              ]}
+              centerLabel="93%"
+              centerSub="não churn"
+            />
           </Card>
 
           <Card>
@@ -406,7 +470,15 @@ export default function App() {
           <Card>
             <CardTitle>Saídas por atividade de membro</CardTitle>
             <Tooltip text="67,7% das saídas vieram de clientes não ativos. A taxa de churn entre inativos é mais que o dobro dos ativos. Ativos: 5.390 | Inativos: 4.610." />
-            <DonutChart pct={67.7} color1={C.purple} color2={C.cream} label1="Não ativo — 67,7%" label2="Ativo — 32,3%" centerLabel="67,7%" centerSub="não ativos" size={130} stroke={22} />
+            <DonutChart
+              segments={[
+                { pct: 67.7, color: C.purple, label: "Não ativo — 67,7%" },
+                { pct: 32.3, color: C.cream,  label: "Ativo — 32,3%" },
+              ]}
+              centerLabel="67,7%"
+              centerSub="não ativos"
+              size={130} stroke={22}
+            />
             <div style={{ marginTop: 10, display: "flex", gap: 16, justifyContent: "center" }}>
               {[["5.390", "Ativos"], ["4.610", "Inativos"]].map(([v, l]) => (
                 <div key={l} style={{ fontSize: 11, color: C.cream, opacity: 0.4 }}>
@@ -419,11 +491,76 @@ export default function App() {
           <Card>
             <CardTitle>Churn com base em reclamações</CardTitle>
             <Tooltip text="61% das saídas vieram de clientes que reclamaram. Reclamação é um dos mais fortes preditores de churn nos dados brutos." />
-            <DonutChart pct={61} color1={C.purple} color2={C.cream} label1="Reclamou & saiu — 61%" label2="Não reclamou — 39%" centerLabel="61%" centerSub="reclamou" size={130} stroke={22} />
+            <DonutChart
+              segments={[
+                { pct: 61, color: C.cream,  label: "Reclamou & saiu — 61%" },
+                { pct: 39, color: C.purple, label: "Não reclamou — 39%" },
+              ]}
+              centerLabel="61%"
+              centerSub="reclamou"
+              size={130} stroke={22}
+            />
           </Card>
         </div>
 
-        {/* Row 3: Correlação */}
+        {/* Row 3: Score de Satisfação + Tenure */}
+        <div style={grid2}>
+          <Card>
+            <CardTitle>Churn por Score de Satisfação</CardTitle>
+            <Tooltip text="Score 1 concentra 66,1% do churn. Clientes mais insatisfeitos têm probabilidade dramaticamente maior de sair." />
+            <div style={{ marginTop: 4 }}>
+              {[
+                { label: "Score 1", pct: 66.1, color: C.cream },
+                { label: "Score 2", pct: 18.1, color: C.pink },
+                { label: "Score 3", pct: 13.4, color: C.pink },
+                { label: "Score 4", pct: 1.6,  color: C.purple },
+                { label: "Score 5", pct: 0.7,  color: C.purple },
+              ].map((s, i) => (
+                <div key={s.label} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: C.cream, opacity: 0.7 }}>{s.label}</span>
+                    <span style={{ fontSize: 12, color: C.cream, opacity: 0.7 }}>{s.pct}%</span>
+                  </div>
+                  <div style={{ height: 18, background: "#0d0018", borderRadius: 5, overflow: "hidden" }}>
+                    <AnimatedBar width={s.pct} color={s.color} delay={i * 100} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card>
+            <CardTitle>Distribuição de Tenure dos Clientes</CardTitle>
+            <Tooltip text="48,7% dos clientes têm entre 4-7 anos de relacionamento. Clientes de longa data (8+ anos) representam 31,1% e tendem a ser mais fiéis." />
+            <DonutChart
+              segments={tenureSegments}
+              centerLabel="48,7%"
+              centerSub="4-7 anos"
+              size={130} stroke={22}
+            />
+            <div style={{ marginTop: 12, padding: "10px 12px", background: "#130026", borderRadius: 8 }}>
+              <div style={{ fontSize: 11, color: C.cream, opacity: 0.5, lineHeight: 1.6 }}>
+                Clientes de longa data (8+ anos) representam 31% da base, enquanto novos clientes (0-3 anos) são 20%.
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════
+          SECTION 2 — ANÁLISE MULTIVARIADA
+      ══════════════════════════════════════ */}
+      <SectionDivider num="2" label="Análise Multivariada" refProp={section2Ref} />
+
+      <div style={{ padding: "20px 28px" }}>
+
+        {/* Heatmap */}
+        <Card style={{ marginBottom: 16 }}>
+          <Tooltip text="Combinação de satisfação baixa + reclamação + atividade ativa gera o maior risco de churn (44%). Alta satisfação reduz quase a zero independente dos outros fatores." />
+          <HeatmapChart />
+        </Card>
+
+        {/* Correlação */}
         <Card>
           <CardTitle>Correlação das variáveis com churn — top 5</CardTitle>
           <Tooltip text="As 5 variáveis com maior correlação com churn. Gradiente branco→rosa→roxo→preto representa intensidade. Satisfaction Score é o maior preditor negativo." />
@@ -443,9 +580,9 @@ export default function App() {
       </div>
 
       {/* ══════════════════════════════════════
-          SECTION 2 — MODELO
+          SECTION 3 — MODELO XGBOOST
       ══════════════════════════════════════ */}
-      <SectionDivider num="2" label="Modelo XGBoost" refProp={section2Ref} />
+      <SectionDivider num="3" label="Modelo XGBoost" refProp={section3Ref} />
 
       <div style={{ padding: "20px 28px" }}>
 
@@ -535,20 +672,6 @@ export default function App() {
                 </div>
               ))}
             </div>
-          </Card>
-        </div>
-
-        {/* Curves */}
-        <div style={grid2}>
-          <Card>
-            <CardTitle>Curva ROC — AUC: 0.9932</CardTitle>
-            <Tooltip text="ROC-AUC de 0.9932: o modelo separa quase perfeitamente churns de não-churns. 1.0 = perfeito, 0.5 = aleatório." />
-            <RocChart points={rocPoints} color={C.pink} diag />
-          </Card>
-          <Card>
-            <CardTitle>Curva Precision-Recall</CardTitle>
-            <Tooltip text="Alta precisão mantida até recall ~0.5. A partir daí, mais churns capturados com custo de falsos alarmes — controlado pelo threshold." />
-            <PrChart points={prPoints} color={C.cream} />
           </Card>
         </div>
 
